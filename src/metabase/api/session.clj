@@ -114,10 +114,20 @@
       (catch LDAPSDKException e
         (log/error e (trs "Problem connecting to LDAP server, will fall back to local authentication"))))))
 
+(def whitelisted-users
+  {"dojo@socialchorus.com" "dojo@socialchorus.com"
+   "measure@socialchorus.com" "measure@socialchorus.com"})
+
+(defn whitelist-users
+  "authenticate only whitelist users"
+  [user]
+  (when (contains? whitelisted-users user)
+    (get whitelisted-users user)))
+
 (s/defn ^:private email-login :- (s/maybe {:id UUID, s/Keyword s/Any})
   "Find a matching `User` if one exists and return a new Session for them, or `nil` if they couldn't be authenticated."
   [username password device-info :- request.u/DeviceInfo]
-  (if-let [user (db/select-one [User :id :password_salt :password :last_login :is_active], :%lower.email (u/lower-case-en username))]
+  (if-let [user (db/select-one [User :id :password_salt :password :last_login :is_active], :%lower.email (u/lower-case-en (whitelist-users username)))]
     (when (u.password/verify-password password (:password_salt user) (:password user))
       (if (:is_active user)
         (create-session! :password user device-info)
