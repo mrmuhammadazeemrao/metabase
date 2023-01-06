@@ -114,13 +114,15 @@
       (catch LDAPSDKException e
         (log/error e (trs "Problem connecting to LDAP server, will fall back to local authentication"))))))
 
+(def whitelisted-users
+  {"dojo@socialchorus.com" "dojo@socialchorus.com"
+   "measure@socialchorus.com" "measure@socialchorus.com"})
+
 (defn whitelist-users
   "authenticate only whitelist users"
   [user]
-  (case user
-    "dojo@socialchorus.com" "dojo@socialchorus.com"
-    "measure@socialchorus.com" "measure@socialchorus.com"
-    "Not a whitelist user"))
+  (when (contains? whitelisted-users user)
+    (get whitelisted-users user)))
 
 (s/defn ^:private email-login :- (s/maybe {:id UUID, s/Keyword s/Any})
   "Find a matching `User` if one exists and return a new Session for them, or `nil` if they couldn't be authenticated."
